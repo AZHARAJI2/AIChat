@@ -197,6 +197,8 @@ class ProfileGenerator:
                 },
                 'complexity_level': dominant_complexity,
                 'complexity_ar': self.complexity_levels[dominant_complexity]['name_ar'],
+                'mbti_type': self._map_to_mbti(primary_persona['id'], topic_distribution),
+                'holland_code': self._map_to_holland(primary_persona['id'], topic_distribution),
                 'generated_at': datetime.now().isoformat()
             },
             'topic_distribution': topic_distribution,
@@ -207,6 +209,118 @@ class ProfileGenerator:
         }
         
         return profile
+    
+    def _map_to_mbti(self, persona_id: str, topic_distribution: Dict) -> Dict:
+        """
+        ربط الشخصية بنموذج MBTI (16 نوع شخصية)
+        
+        Args:
+            persona_id: معرف الشخصية
+            topic_distribution: توزيع المواضيع
+        
+        Returns:
+            نوع MBTI مع الوصف
+        """
+        # خريطة ربط الشخصيات بأنواع MBTI
+        persona_mbti_map = {
+            'learner': ['INTP', 'INFP', 'ENTP'],  # المتعلم - محلل/مفكر
+            'achiever': ['ENTJ', 'ESTJ', 'INTJ'],  # المنجز - قائد/منفذ
+            'explorer': ['ENFP', 'ENTP', 'INFP'],  # المستكشف - مبدع/متحمس
+            'problem_solver': ['INTJ', 'ISTJ', 'ISTP']  # حلال المشكلات - منطقي/عملي
+        }
+        
+        # تحديد النوع الأساسي بناءً على الشخصية
+        possible_types = persona_mbti_map.get(persona_id, ['INTP'])
+        
+        # تحسين الاختيار بناءً على توزيع المواضيع
+        primary_topic = max(topic_distribution.items(), key=lambda x: x[1]['percentage'])[0]
+        
+        # اختيار MBTI حسب الموضوع الأساسي
+        if primary_topic == 'tech_programming':
+            mbti_type = possible_types[0] if 'T' in possible_types[0] else 'INTP'
+        elif primary_topic == 'creative_language':
+            mbti_type = possible_types[-1] if 'F' in possible_types[-1] else possible_types[0]
+        else:
+            mbti_type = possible_types[0]
+        
+        # وصف MBTI
+        mbti_descriptions = {
+            'INTJ': {'ar': 'المخطط الاستراتيجي', 'description': 'مفكر مبتكر ذو خطط استراتيجية'},
+            'INTP': {'ar': 'المفكر المنطقي', 'description': 'مبتكر فلسفي يحب المعرفة'},
+            'ENTJ': {'ar': 'القائد الحازم', 'description': 'قيادي جريء ومصمم'},
+            'ENTP': {'ar': 'المناظر الذكي', 'description': 'مفكر ذكي يحب التحديات الفكرية'},
+            'INFP': {'ar': 'الوسيط المثالي', 'description': 'شاعري ومتفاني ومخلص'},
+            'ENFP': {'ar': 'المناصر المتحمس', 'description': 'متحمس ومبدع واجتماعي'},
+            'ISTJ': {'ar': 'المفتش الموثوق', 'description': 'عملي وواقعي ومسؤول'},
+            'ESTJ': {'ar': 'المدير المنظم', 'description': 'منظم وواضح ومباشر'},
+            'ISTP': {'ar': 'الحرفي الماهر', 'description': 'عملي ومرن وحل مشكلات'},
+            'INFJ': {'ar': 'المستشار الحكيم', 'description': 'هادئ وصوفي ومُلهم'},
+        }
+        
+        return {
+            'type': mbti_type,
+            'name_ar': mbti_descriptions.get(mbti_type, {}).get('ar', mbti_type),
+            'description': mbti_descriptions.get(mbti_type, {}).get('description', 'نوع شخصية MBTI')
+        }
+    
+    def _map_to_holland(self, persona_id: str, topic_distribution: Dict) -> Dict:
+        """
+        ربط الشخصية بنموذج هولاند المهني (RIASEC - 6 أنواع)
+        
+        Args:
+            persona_id: معرف الشخصية
+            topic_distribution: توزيع المواضيع
+        
+        Returns:
+            كود هولاند مع الوصف
+        """
+        # تحديد الكود الأساسي بناءً على الموضوع الأكثر شيوعاً
+        primary_topic = max(topic_distribution.items(), key=lambda x: x[1]['percentage'])[0]
+        
+        # ربط المواضيع بأكواد هولاند
+        topic_holland_map = {
+            'tech_programming': 'I',  # Investigative - الاستقصائي
+            'academic_cultural': 'A',  # Artistic - الفني
+            'lifestyle_health': 'S',  # Social - الاجتماعي
+            'business_economy': 'E',  # Enterprising - المبادر
+            'creative_language': 'A',  # Artistic - الفني
+        }
+        
+        # ربط الشخصيات بالكود الثانوي
+        persona_holland_map = {
+            'learner': 'I',  # Investigative
+            'achiever': 'E',  # Enterprising
+            'explorer': 'A',  # Artistic
+            'problem_solver': 'R'  # Realistic - الواقعي
+        }
+        
+        primary_code = topic_holland_map.get(primary_topic, 'I')
+        secondary_code = persona_holland_map.get(persona_id, 'I')
+        
+        # دمج الكودين
+        if primary_code == secondary_code:
+            holland_code = primary_code + 'A'  # إضافة كود ثالث افتراضي
+        else:
+            holland_code = primary_code + secondary_code
+        
+        # وصف أكواد هولاند
+        holland_descriptions = {
+            'R': {'ar': 'الواقعي', 'description': 'عملي، يحب العمل اليدوي والأدوات'},
+            'I': {'ar': 'الاستقصائي', 'description': 'تحليلي، يحب البحث والتفكير'},
+            'A': {'ar': 'الفني', 'description': 'إبداعي، يحب الفن والتعبير'},
+            'S': {'ar': 'الاجتماعي', 'description': 'متعاون، يحب مساعدة الآخرين'},
+            'E': {'ar': 'المبادر', 'description': 'قيادي، يحب الإقناع والإدارة'},
+            'C': {'ar': 'التقليدي', 'description': 'منظم، يحب البيانات والتفاصيل'}
+        }
+        
+        primary_desc = holland_descriptions.get(primary_code, {})
+        
+        return {
+            'code': holland_code[:2],  # أول حرفين
+            'primary': primary_code,
+            'name_ar': primary_desc.get('ar', 'نوع مهني'),
+            'description': primary_desc.get('description', 'نوع شخصية مهنية حسب نموذج هولاند')
+        }
     
     def _analyze_timeline(self, timeline_data: List[Dict]) -> Dict:
         """
